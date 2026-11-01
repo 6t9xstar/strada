@@ -1,0 +1,7 @@
+cargo bench --bench router  (Criterion 0.5, same machine, [low mid high] of 95% CI)
+tree/lookup_all_96_github_routes  [13.455 us 13.488 us 13.528 us]
+tree/lookup_static                [40.695 ns 40.752 ns 40.819 ns]
+tree/lookup_3_params              [239.76 ns 240.12 ns 240.49 ns]
+dispatch/plaintext                [275.65 ns 276.54 ns 277.53 ns]
+dispatch/json                     [363.69 ns 364.90 ns 366.40 ns]
+dispatch/users/42                 [478.10 ns 479.28 ns 480.74 ns]

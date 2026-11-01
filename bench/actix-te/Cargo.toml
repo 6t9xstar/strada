@@ -1,0 +1,9 @@
+[package]
+name = "actix-te"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+actix-web = { version = "4", default-features = false, features = ["macros"] }
+serde = { version = "1", features = ["derive"] }
