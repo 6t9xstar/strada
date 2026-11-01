@@ -24,10 +24,10 @@ mod router;
 mod server;
 
 pub use handler::Handler;
-pub use request::{Body, Request};
+pub use request::{Body, BodyError, Request, DEFAULT_BODY_LIMIT};
 pub use response::{IntoResponse, Json, Response};
 pub use router::{InsertError, Params, Tree};
-pub use server::{serve_listener, Server};
+pub use server::{serve_listener, serve_listener_with, Limits, Server};
 
 pub use bytes::Bytes;
 pub use http::{header, Method, StatusCode};

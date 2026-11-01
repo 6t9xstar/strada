@@ -66,7 +66,9 @@ enum Piece<'a> {
 
 fn parse(path: &str) -> Result<Vec<Piece<'_>>, InsertError> {
     if !path.starts_with('/') {
-        return Err(InsertError::Invalid(format!("`{path}` must start with '/'")));
+        return Err(InsertError::Invalid(format!(
+            "`{path}` must start with '/'"
+        )));
     }
     let mut pieces = Vec::new();
     let bytes = path.as_bytes();
@@ -86,7 +88,9 @@ fn parse(path: &str) -> Result<Vec<Piece<'_>>, InsertError> {
                 }
                 let name = &path[name_start..j];
                 if name.is_empty() {
-                    return Err(InsertError::Invalid(format!("empty param name in `{path}`")));
+                    return Err(InsertError::Invalid(format!(
+                        "empty param name in `{path}`"
+                    )));
                 }
                 if name.contains([':', '*']) {
                     return Err(InsertError::Invalid(format!("bad param name in `{path}`")));
@@ -152,7 +156,10 @@ impl<T> Node<T> {
             Piece::Static(s) => self.insert_static(s, rest, full, value),
             Piece::Param(name) => {
                 let child = self.param.get_or_insert_with(|| {
-                    Box::new(ParamChild { name: name.into(), node: Node::new("") })
+                    Box::new(ParamChild {
+                        name: name.into(),
+                        node: Node::new(""),
+                    })
                 });
                 if &*child.name != name {
                     return Err(InsertError::ParamConflict {
@@ -268,7 +275,9 @@ pub struct Tree<T> {
 
 impl<T> Default for Tree<T> {
     fn default() -> Self {
-        Tree { root: Node::new("") }
+        Tree {
+            root: Node::new(""),
+        }
     }
 }
 
@@ -300,8 +309,7 @@ impl<T> Tree<T> {
         while i < pieces.len() {
             match pieces[i] {
                 Piece::Static(mut s) => loop {
-                    let Some(pos) = node.indices.iter().position(|&b| b == s.as_bytes()[0])
-                    else {
+                    let Some(pos) = node.indices.iter().position(|&b| b == s.as_bytes()[0]) else {
                         return Ok(None);
                     };
                     let child = &mut node.children[pos];
@@ -333,6 +341,8 @@ impl<T> Tree<T> {
     /// Match a request path, returning the value and captured params.
     pub fn at(&self, path: &str) -> Option<(&T, Params)> {
         let mut params = Vec::new();
-        self.root.at(path, &mut params).map(|v| (v, Params { inner: params }))
+        self.root
+            .at(path, &mut params)
+            .map(|v| (v, Params { inner: params }))
     }
 }

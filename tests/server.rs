@@ -12,12 +12,16 @@ fn app() -> Router {
     Router::new()
         .get("/plaintext", |_r: Request| async { "Hello, World!" })
         .get("/json", |_r: Request| async {
-            Json(Msg { message: "Hello, World!".into() })
+            Json(Msg {
+                message: "Hello, World!".into(),
+            })
         })
         .get("/users/:id", |r: Request| async move {
             format!("user={}", r.param("id").unwrap())
         })
-        .post("/echo", |mut r: Request| async move { r.json::<Msg>().await.map(Json) })
+        .post("/echo", |mut r: Request| async move {
+            r.json::<Msg>().await.map(Json)
+        })
 }
 
 async fn start() -> std::net::SocketAddr {
@@ -52,7 +56,9 @@ async fn plaintext() {
 #[tokio::test]
 async fn json() {
     let res = raw(start().await, &req("GET", "/json")).await;
-    assert!(res.to_lowercase().contains("content-type: application/json"));
+    assert!(res
+        .to_lowercase()
+        .contains("content-type: application/json"));
     assert!(res.ends_with(r#"{"message":"Hello, World!"}"#), "{res}");
 }
 
@@ -65,7 +71,9 @@ async fn path_params() {
 #[tokio::test]
 async fn not_found_and_method_not_allowed() {
     let addr = start().await;
-    assert!(raw(addr, &req("GET", "/nope")).await.starts_with("HTTP/1.1 404"));
+    assert!(raw(addr, &req("GET", "/nope"))
+        .await
+        .starts_with("HTTP/1.1 404"));
     let res = raw(addr, &req("DELETE", "/plaintext")).await;
     assert!(res.starts_with("HTTP/1.1 405"), "{res}");
     assert!(res.to_lowercase().contains("allow: get"));

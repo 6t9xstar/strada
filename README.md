@@ -1,8 +1,10 @@
 # Strada
 
+[![CI](https://github.com/6t9xstar/strada/actions/workflows/ci.yml/badge.svg)](https://github.com/6t9xstar/strada/actions/workflows/ci.yml)
+
 A small HTTP backend framework for Rust, built on Tokio and Hyper 1.x.
 
-**Status: v0.1.** Strada has a router, async handlers, and plaintext/JSON responses. It does not have middleware, TLS, HTTP/2, extractors, graceful shutdown of in-flight connections, or tracing yet. Don't use it in production.
+**Status: v0.1 (pre-1.0).** Strada has a router, async handlers, plaintext/JSON responses, and safe defaults for request limits, timeouts, panics and shutdown. It does not have middleware, TLS, HTTP/2, extractors or tracing yet. Run it behind a TLS-terminating proxy. Requires Rust 1.85+.
 
 ```rust
 use strada::{Json, Request, Router, Server};
@@ -17,9 +19,21 @@ async fn main() -> std::io::Result<()> {
         .post("/echo", |mut req: Request| async move {
             req.json::<serde_json::Value>().await.map(Json)
         });
-    Server::bind("127.0.0.1:8080").serve(app).await
+    Server::bind("127.0.0.1:8080")
+        .serve_with_shutdown(app, async { let _ = tokio::signal::ctrl_c().await; })
+        .await
 }
 ```
+
+### Safe defaults
+
+| Limit | Default | Configure | Behaviour |
+|---|---|---|---|
+| Request body | 2 MiB | `Server::body_limit` | `413` for declared or streamed oversize bodies |
+| Header read timeout | 10 s | `Server::header_read_timeout` | Stalled connections (slowloris) are closed |
+| Handler panic | n/a | n/a | The panic is caught and returns `500`; the server keeps serving |
+| Shutdown grace | 30 s | `Server::shutdown_grace` | `serve_with_shutdown` stops accepting, closes idle connections and lets in-flight requests finish |
+| Accept errors | n/a | n/a | Back off 50 ms (e.g. out of file descriptors) instead of spinning |
 
 ## What's in v0.1
 
@@ -35,7 +49,7 @@ async fn main() -> std::io::Result<()> {
 cargo test --workspace
 ```
 
-There are 7 router tests and 8 tests that run over real TCP: plaintext, JSON, params, 404/405, JSON body round-trip, the 422 error, pipelined keep-alive, and HEAD. There is also 1 doc test.
+The suite has 7 router tests, 8 end-to-end tests over real TCP (plaintext, JSON, params, 404/405, JSON round-trip and 422, pipelined keep-alive, HEAD), 6 hardening tests (body limit declared and chunked, panic → 500, header timeout, graceful shutdown) and 1 doc test. CI runs them on Linux, Windows and macOS, together with fmt, clippy `-D warnings`, rustdoc, MSRV 1.85 and `cargo package`.
 
 ## Benchmarks
 
@@ -63,7 +77,7 @@ cargo install oha --locked
 bench/run.sh
 ```
 
-The script builds all three servers in release mode (`lto = "fat"`, `codegen-units = 1`). Each server exposes identical `/plaintext` and `/json` endpoints ([examples/techempower.rs](examples/techempower.rs), [bench/axum-te](bench/axum-te/src/main.rs), [bench/actix-te](bench/actix-te/src/main.rs)). For each server the script warms up for 3 s, then runs [oha](https://github.com/hatoo/oha) for 15 s at 64, 256 and 512 connections. It saves raw JSON per run and generates `summary.md`. You can override `DURATION`, `CONNS`, `FRAMEWORKS` and `TESTS` with environment variables.
+The script builds all three servers in release mode (`lto = "fat"`, `codegen-units = 1`). The 2026-11-01 results below were measured with `panic = "abort"`, which has since been removed so that panics can be caught. All three frameworks were built with the same profile. Each server exposes identical `/plaintext` and `/json` endpoints ([examples/techempower.rs](examples/techempower.rs), [bench/axum-te](bench/axum-te/src/main.rs), [bench/actix-te](bench/actix-te/src/main.rs)). For each server the script warms up for 3 s, then runs [oha](https://github.com/hatoo/oha) for 15 s at 64, 256 and 512 connections. It saves raw JSON per run and generates `summary.md`. You can override `DURATION`, `CONNS`, `FRAMEWORKS` and `TESTS` with environment variables.
 
 **Results, 2026-11-01.** Machine: i7-12800H (14 cores / 20 threads), Windows 11, Rust 1.97.1, hyper 1.12.0, axum 0.8.9, actix-web 4.18.1, oha 1.16.0. Client and server ran on the same machine over loopback. These are single runs.
 
@@ -119,7 +133,7 @@ bench/          axum-te, actix-te comparison servers; run.sh, summarize.mjs; res
 
 ## Roadmap
 
-- **0.2:** Tower `Service` integration and middleware, typed extractors, graceful shutdown that drains connections, and `tracing`.
+- **0.2:** Tower `Service` integration and middleware, typed extractors, `tracing`, and a static-file service (precompressed assets, ETag) so Strada can serve Velocita builds.
 - **0.3:** HTTP/2 and TLS via Rustls.
 - **Later:** a Clap-based CLI, then production hardening (timeouts, limits, backpressure) toward 1.0.
 

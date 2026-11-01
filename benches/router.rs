@@ -132,7 +132,12 @@ fn bench_tree(c: &mut Criterion) {
         b.iter(|| black_box(tree.at(black_box("/user/subscriptions")).unwrap()))
     });
     c.bench_function("tree/lookup_3_params", |b| {
-        b.iter(|| black_box(tree.at(black_box("/repos/rust-lang/rust/pulls/42/files")).unwrap()))
+        b.iter(|| {
+            black_box(
+                tree.at(black_box("/repos/rust-lang/rust/pulls/42/files"))
+                    .unwrap(),
+            )
+        })
     });
 }
 
@@ -142,17 +147,24 @@ struct Message {
 }
 
 fn bench_dispatch(c: &mut Criterion) {
-    let rt = tokio::runtime::Builder::new_current_thread().build().unwrap();
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
     let app = Router::new()
         .get("/plaintext", |_r: Request| async { "Hello, World!" })
-        .get("/json", |_r: Request| async { Json(Message { message: "Hello, World!" }) })
+        .get("/json", |_r: Request| async {
+            Json(Message {
+                message: "Hello, World!",
+            })
+        })
         .get("/users/:id", |r: Request| async move {
             format!("user {}", r.param("id").unwrap_or_default())
         });
     let req = |p: &'static str| Request::new(http::Request::get(p).body(Body::from("")).unwrap());
     for path in ["/plaintext", "/json", "/users/42"] {
         c.bench_function(&format!("dispatch{path}"), |b| {
-            b.to_async(&rt).iter(|| async { black_box(app.handle(req(path)).await) })
+            b.to_async(&rt)
+                .iter(|| async { black_box(app.handle(req(path)).await) })
         });
     }
 }

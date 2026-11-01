@@ -8,12 +8,16 @@ struct Message {
 
 #[get("/plaintext")]
 async fn plaintext() -> impl Responder {
-    HttpResponse::Ok().content_type("text/plain; charset=utf-8").body("Hello, World!")
+    HttpResponse::Ok()
+        .content_type("text/plain; charset=utf-8")
+        .body("Hello, World!")
 }
 
 #[get("/json")]
 async fn json() -> impl Responder {
-    web::Json(Message { message: "Hello, World!" })
+    web::Json(Message {
+        message: "Hello, World!",
+    })
 }
 
 #[actix_web::main]

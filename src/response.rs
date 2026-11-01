@@ -41,8 +41,10 @@ impl IntoResponse for String {
 impl IntoResponse for Bytes {
     fn into_response(self) -> Response {
         let mut res = http::Response::new(Full::new(self));
-        res.headers_mut()
-            .insert(CONTENT_TYPE, HeaderValue::from_static("application/octet-stream"));
+        res.headers_mut().insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/octet-stream"),
+        );
         res
     }
 }

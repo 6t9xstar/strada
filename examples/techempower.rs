@@ -13,7 +13,9 @@ async fn main() -> std::io::Result<()> {
     let app = Router::new()
         .get("/plaintext", |_req: Request| async { "Hello, World!" })
         .get("/json", |_req: Request| async {
-            Json(Message { message: "Hello, World!" })
+            Json(Message {
+                message: "Hello, World!",
+            })
         });
     Server::bind(format!("127.0.0.1:{port}")).serve(app).await
 }
